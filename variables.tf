@@ -30,6 +30,20 @@ variable "engine" {
   }
 }
 
+variable "engine_version" {
+  type        = string
+  nullable    = true
+  default     = null
+  description = "Database engine version. Default is the latest supported version."
+}
+
+variable "engine_family" {
+  type        = string
+  nullable    = true
+  default     = null
+  description = "Database engine family. Default is the latest supported family."
+}
+
 variable "allowed_security_groups" {
   type        = list(string)
   default     = []

@@ -32,31 +32,32 @@ def compare_versions(current_version, new_version):
 
 
 def extract_max_engine_versions(engine_versions_data):
-  """Extract unique engines with their maximum major version."""
+  """Extract unique engines with their maximum major version and parameter group family."""
   engines_dict = {}
   
   for version in engine_versions_data['DBEngineVersions']:
     engine = version['Engine']
     major_version = version.get('MajorEngineVersion', '')
+    param_group_family = version.get('DBParameterGroupFamily', '')
     
     if engine not in engines_dict:
-      engines_dict[engine] = major_version
-    elif major_version and engines_dict[engine]:
-      if compare_versions(engines_dict[engine], major_version):
-        engines_dict[engine] = major_version
+      engines_dict[engine] = {'version': major_version, 'param_group_family': param_group_family}
+    elif major_version and engines_dict[engine]['version']:
+      if compare_versions(engines_dict[engine]['version'], major_version):
+        engines_dict[engine] = {'version': major_version, 'param_group_family': param_group_family}
     elif major_version:
-      engines_dict[engine] = major_version
+      engines_dict[engine] = {'version': major_version, 'param_group_family': param_group_family}
   
   return engines_dict
 
 
 def print_engine_versions(engines_dict):
   """Print engine versions in sorted order."""
-  engines_list = [(engine, max_version) 
-          for engine, max_version in engines_dict.items()]
+  engines_list = [(engine, data['version'], data['param_group_family']) 
+          for engine, data in engines_dict.items()]
   
-  for engine, max_version in sorted(engines_list):
-    print(f"{engine}: {max_version}")
+  for engine, max_version, param_group_family in sorted(engines_list):
+    print(f"{engine}: {max_version} (Parameter Group Family: {param_group_family})")
 
 
 def main():

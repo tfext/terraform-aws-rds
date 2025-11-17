@@ -8,7 +8,7 @@ resource "random_password" "root_password" {
 
 resource "aws_db_parameter_group" "parameters" {
   name        = var.name
-  family      = local.engine.family
+  family      = local.engine_family
   description = module.tagging.managed_by_description
 
   dynamic "parameter" {
@@ -80,7 +80,7 @@ resource "aws_db_instance" "database" {
   storage_type                        = "gp2"
   instance_class                      = var.instance_type
   engine                              = local.engine.name
-  engine_version                      = local.engine.version
+  engine_version                      = local.engine_version
   db_name                             = coalesce(var.db_name, var.name)
   port                                = local.engine.port
   username                            = "root"
