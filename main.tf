@@ -26,8 +26,8 @@ locals {
   supported_engines = {
     postgres = {
       name    = "postgres"
-      version = "13.7"
-      family  = "postgres13"
+      version = "18"
+      family  = "postgres18"
       port    = 5432
 
       parameters = {
@@ -41,8 +41,8 @@ locals {
     }
     mariadb = {
       name    = "mariadb"
-      version = "10.11"
-      family  = "mariadb10.11"
+      version = "11.8"
+      family  = "mariadb11.8"
       port    = 3306
       style   = "mysql"
 
@@ -52,10 +52,19 @@ locals {
         log_slow_verbosity  = { value = "explain" }
       }
     }
-    # TODO
-    # mysql = {
+    mysql = {
+      name    = "mysql"
+      version = "8.4"
+      family  = "mysql8.4"
+      port    = 3306
+      style   = "mysql"
 
-    # }
+      parameters = {
+        log_slow_query      = { value = "1" }
+        log_slow_query_time = { value = "2" }
+        log_slow_verbosity  = { value = "explain" }
+      }
+    }
   }
 
   engine = local.supported_engines[var.engine]
