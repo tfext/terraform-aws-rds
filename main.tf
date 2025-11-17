@@ -69,5 +69,5 @@ locals {
 
   engine = local.supported_engines[var.engine]
   engine_version = coalesce(var.engine_version, local.engine.version)
-  engine_family = coalesce(var.engine_family, format("%[1]%[2]", local.engine.name, local.engine_version))
+  engine_family = coalesce(var.engine_family, format("%[1]s%[2]s", local.engine.name, local.engine_version))
 }
