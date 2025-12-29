@@ -3,7 +3,8 @@ locals {
 }
 
 resource "random_password" "root_password" {
-  length = 15
+  length  = 15
+  override_special = "!$#&*_-"
 }
 
 resource "aws_db_parameter_group" "parameters" {
@@ -18,6 +19,10 @@ resource "aws_db_parameter_group" "parameters" {
       value        = parameter.value.value
       apply_method = try(parameter.value.immediate, true) ? "immediate" : "pending-reboot"
     }
+  }
+
+  lifecycle {
+    ignore_changes = [description]
   }
 }
 
@@ -89,7 +94,7 @@ resource "aws_db_instance" "database" {
   skip_final_snapshot                 = true
   vpc_security_group_ids              = [aws_security_group.db.id]
   db_subnet_group_name                = aws_db_subnet_group.db.name
-  multi_az                            = module.tagging.production
+  multi_az                            = coalesce(var.multi_az, module.tagging.production)
   apply_immediately                   = !module.tagging.production
   maintenance_window                  = "Thu:07:40-Thu:08:10"
   backup_window                       = "10:57-11:27"
@@ -104,16 +109,25 @@ resource "aws_db_instance" "database" {
   }
 
   depends_on = [
+    aws_db_parameter_group.parameters,
     aws_security_group_rule.allowed,
     aws_security_group_rule.outbound
   ]
 }
 
 module "mysql_users" {
-  count    = try(local.engine.style, local.engine.name) == "mysql" ? 1 : 0
+  count    = local.manage_users == "mysql" && var.mysql != null ? 1 : 0
   source   = "./modules/mysql"
   aws      = module.base
   database = aws_db_instance.database
-  groups   = var.groups
-  users    = var.users
+  groups   = var.mysql.groups
+  users    = var.mysql.users
+}
+
+module "postgres_users" {
+  count    = local.manage_users == "postgres" && var.postgres != null ? 1 : 0
+  source   = "./modules/postgresql"
+  database = aws_db_instance.database
+  groups   = var.postgres.groups
+  users    = var.postgres.users
 }

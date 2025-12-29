@@ -62,16 +62,34 @@ variable "public" {
   description = "Deploy the database in public subnets"
 }
 
-variable "groups" {
-  type        = map(object({ privileges = list(string) }))
-  default     = {}
-  nullable    = false
-  description = "Groups to create for managing users"
+variable "multi_az" {
+  type        = bool
+  default     = null
+  description = "Force multi-AZ mode on or off (default is on for production, otherwise off)"
 }
 
-variable "users" {
-  type        = map(object({ group = string, iam_user = optional(string) }))
-  default     = {}
-  nullable    = false
-  description = "Users to provision (IAM only for now)"
+variable "mysql" {
+  type = object({
+    groups = map(object({ privileges = list(string) }))
+    users  = map(object({ group = string, iam_user = optional(string) }))
+  })
+  nullable    = true
+  default     = null
+  description = "MySQL specific configuration"
+}
+
+variable "postgres" {
+  type = object({
+    groups = map(object({
+      privileges = object({
+        tables    = list(string),
+        schemas   = optional(list(string))
+        sequences = list(string)
+      })
+    }))
+    users = map(object({ group = string, iam_user = optional(string) }))
+  })
+  nullable    = true
+  default     = null
+  description = "Postgresql specific configuration"
 }
