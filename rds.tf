@@ -3,20 +3,26 @@ locals {
 }
 
 resource "random_password" "root_password" {
+  count  = var.manage_master_password ? 0 : 1
   length = 15
+}
+
+moved {
+  from = random_password.root_password
+  to   = random_password.root_password[0]
 }
 
 resource "aws_db_parameter_group" "parameters" {
   name        = var.name
-  family      = local.engine.family
+  family      = local.engine_family
   description = module.tagging.managed_by_description
 
   dynamic "parameter" {
-    for_each = try(local.engine.parameters, {})
+    for_each = local.parameters
     content {
       name         = parameter.key
       value        = parameter.value.value
-      apply_method = try(parameter.value.immediate, true) ? "immediate" : "pending-reboot"
+      apply_method = coalesce(try(parameter.value.immediate, null), true) ? "immediate" : "pending-reboot"
     }
   }
 }
@@ -77,27 +83,33 @@ resource "aws_security_group_rule" "outbound" {
 resource "aws_db_instance" "database" {
   identifier                          = var.name
   allocated_storage                   = var.storage_size
-  storage_type                        = "gp2"
+  storage_type                        = var.storage_type
+  storage_encrypted                   = var.kms_key_id != null
+  kms_key_id                          = var.kms_key_id
   instance_class                      = var.instance_type
   engine                              = local.engine.name
-  engine_version                      = local.engine.version
+  engine_version                      = local.engine_version
   db_name                             = coalesce(var.db_name, var.name)
   port                                = local.engine.port
   username                            = "root"
-  password                            = random_password.root_password.result
+  password                            = var.manage_master_password ? null : one(random_password.root_password[*].result)
+  manage_master_user_password         = var.manage_master_password ? true : null
   parameter_group_name                = aws_db_parameter_group.parameters.name
-  skip_final_snapshot                 = true
+  skip_final_snapshot                 = !var.final_snapshot
+  final_snapshot_identifier           = var.final_snapshot ? "${var.name}-final" : null
+  deletion_protection                 = var.deletion_protection
   vpc_security_group_ids              = [aws_security_group.db.id]
   db_subnet_group_name                = aws_db_subnet_group.db.name
-  multi_az                            = module.tagging.production
+  multi_az                            = coalesce(var.multi_az, module.tagging.production)
   apply_immediately                   = !module.tagging.production
   maintenance_window                  = "Thu:07:40-Thu:08:10"
   backup_window                       = "10:57-11:27"
-  backup_retention_period             = module.tagging.production ? 7 : 2
+  backup_retention_period             = coalesce(var.backup_retention_days, module.tagging.production ? 7 : 2)
   allow_major_version_upgrade         = false
   auto_minor_version_upgrade          = true
   iam_database_authentication_enabled = var.iam
   publicly_accessible                 = var.public
+  enabled_cloudwatch_logs_exports     = var.log_exports
 
   lifecycle {
     ignore_changes = [db_name, snapshot_identifier, engine_version]

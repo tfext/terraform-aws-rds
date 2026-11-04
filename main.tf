@@ -26,8 +26,8 @@ locals {
   supported_engines = {
     postgres = {
       name    = "postgres"
-      version = "13.7"
-      family  = "postgres13"
+      version = "18.6"
+      family  = "postgres18"
       port    = 5432
 
       parameters = {
@@ -58,5 +58,13 @@ locals {
     # }
   }
 
-  engine = local.supported_engines[var.engine]
+  engine         = local.supported_engines[var.engine]
+  engine_version = coalesce(var.engine_version, local.engine.version)
+  engine_family = coalesce(
+    var.engine_family,
+    var.engine_version == null ? local.engine.family : null,
+    local.engine.name == "postgres" ? "postgres${split(".", local.engine_version)[0]}" : null,
+    local.engine.family,
+  )
+  parameters = merge(try(local.engine.parameters, {}), var.parameters)
 }
