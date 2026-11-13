@@ -13,9 +13,11 @@ moved {
 }
 
 resource "aws_db_parameter_group" "parameters" {
-  name        = var.name
+  # A date suffix gives each group a unique name, so a replacement (a new family on a major version
+  # upgrade) can be created before the old group, which the database is still using, is deleted
+  name        = "${var.name}-${formatdate("YYYYMMDDhhmm", plantimestamp())}"
   family      = local.engine_family
-  description = module.tagging.managed_by_description
+  description = "Managed by terraform"
 
   dynamic "parameter" {
     for_each = local.parameters
@@ -25,24 +27,36 @@ resource "aws_db_parameter_group" "parameters" {
       apply_method = coalesce(try(parameter.value.immediate, null), true) ? "immediate" : "pending-reboot"
     }
   }
+
+  lifecycle {
+    create_before_destroy = true
+    # Deliberately ignored: RDS can't change either in place, so a change replaces the group, and
+    # deleting a group the database uses fails. The name's date suffix changes on every plan, and
+    # descriptions once held the Terragrunt cache path, which differs between machines and CI. A
+    # replacement for any other reason still takes the current name and description
+    ignore_changes = [name, description]
+  }
 }
 
 resource "aws_db_subnet_group" "db" {
   name        = var.name
-  description = module.tagging.managed_by_description
+  description = "Managed by terraform"
   subnet_ids  = var.public ? module.vpc.public_subnet_ids : module.vpc.private_subnet_ids
 }
 
 resource "aws_security_group" "db" {
   name        = local.related_name
   vpc_id      = module.vpc.id
-  description = module.tagging.managed_by_description
+  description = "Managed by terraform"
 
   tags = {
     Name = local.related_name
   }
 
   lifecycle {
+    # Deliberately ignored: a description change replaces the security group, which the database
+    # is attached to. Descriptions once held the Terragrunt cache path, which differs between
+    # machines and CI
     ignore_changes        = [description]
     create_before_destroy = true
   }
@@ -56,7 +70,7 @@ resource "aws_security_group_rule" "allowed" {
   protocol                 = "TCP"
   type                     = "ingress"
   source_security_group_id = each.value
-  description              = module.tagging.managed_by_description
+  description              = "Managed by terraform"
 }
 
 resource "aws_security_group_rule" "public" {
@@ -67,7 +81,7 @@ resource "aws_security_group_rule" "public" {
   protocol          = "TCP"
   type              = "ingress"
   cidr_blocks       = ["0.0.0.0/0"]
-  description       = "Public access (${module.tagging.managed_by_description})"
+  description       = "Public access (Managed by terraform)"
 }
 
 resource "aws_security_group_rule" "outbound" {
@@ -77,7 +91,7 @@ resource "aws_security_group_rule" "outbound" {
   to_port           = 0
   type              = "egress"
   cidr_blocks       = ["0.0.0.0/0"]
-  description       = module.tagging.managed_by_description
+  description       = "Managed by terraform"
 }
 
 resource "aws_db_instance" "database" {

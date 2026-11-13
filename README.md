@@ -22,6 +22,21 @@ module "db" {
 }
 ```
 
+Parameter group
+---------------
+
+A new parameter group is named `<name>-<YYYYMMDDhhmm>`, from the time of the
+plan that creates it, and is created before the group it replaces is deleted.
+So a change that replaces it, such as a new `engine_family` on a major version
+upgrade, works in one apply: the instance moves to the new group, then the old
+one goes. The instance needs a reboot to load the new group's static settings.
+
+The group's name and description are ignored after it's created. RDS can't
+change either in place, so a change would replace the group. Groups created
+before the date suffix keep their names and descriptions. Resource
+descriptions are the fixed text `Managed by terraform`; the `managed_by` tag
+names the unit.
+
 Inputs
 ------
 
