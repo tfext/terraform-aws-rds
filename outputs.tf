@@ -23,9 +23,15 @@ output "port" {
 output "root" {
   value = {
     user     = aws_db_instance.database.username
-    password = random_password.root_password.result
+    password = one(random_password.root_password[*].result)
   }
-  sensitive = true
+  sensitive   = true
+  description = "Root user name and password. The password is null when manage_master_password is true."
+}
+
+output "master_user_secret_arn" {
+  value       = try(aws_db_instance.database.master_user_secret[0].secret_arn, null)
+  description = "ARN of the Secrets Manager secret holding the root password, when manage_master_password is true"
 }
 
 output "security_group" {
