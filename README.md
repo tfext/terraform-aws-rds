@@ -81,7 +81,8 @@ Outputs
 
 | Name                     | Description                                                                                 |
 |--------------------------|---------------------------------------------------------------------------------------------|
-| `id`                     | Instance ID                                                                                 |
+| `id`                     | Instance resource ID with AWS provider 6 and later, the same as `resource_id`               |
+| `identifier`             | Instance identifier (its name), as in CloudWatch's `DBInstanceIdentifier` dimension         |
 | `resource_id`            | Instance resource ID, used in `rds-db:connect` IAM policies                                 |
 | `name`                   | Database name                                                                               |
 | `host`                   | Instance host name                                                                          |

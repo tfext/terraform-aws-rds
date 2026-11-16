@@ -1,5 +1,11 @@
 output "id" {
-  value = aws_db_instance.database.id
+  value       = aws_db_instance.database.id
+  description = "The instance's resource id with AWS provider 6 and later, the same as resource_id. CloudWatch dimensions and the CLI use identifier"
+}
+
+output "identifier" {
+  value       = aws_db_instance.database.identifier
+  description = "The instance's identifier (its name), as in CloudWatch's DBInstanceIdentifier dimension"
 }
 
 output "resource_id" {
